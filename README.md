@@ -1,160 +1,194 @@
-<h1 align="center" style="position: relative;">
-  <br>
-    <img src="./assets/shoppy-x-ray.svg" alt="logo" width="200">
-  <br>
-  Shopify Skeleton Theme
-</h1>
+# Desafio Shopify — Vendedores via Metaobjects
 
-A minimal, carefully structured Shopify theme designed to help you quickly get started. Designed with modularity, maintainability, and Shopify's best practices in mind.
+Tema Shopify desenvolvido para renderizar dinamicamente os vendedores de uma loja e os produtos associados a cada vendedor.
 
-<p align="center">
-  <a href="./LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License"></a>
-  <a href="./actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Shopify/skeleton-theme/actions/workflows/ci.yml/badge.svg"></a>
-</p>
+A implementação utiliza Metaobjects da Shopify, Liquid, HTML e CSS responsivo. Não existem vendedores cadastrados manualmente no schema e nenhum JavaScript é necessário para o funcionamento da seção.
 
-## Getting started
+## Links
 
-### Prerequisites
+- [Repositório no GitHub](https://github.com/yamakishi/desafio-shopify-vendors)
+- [Preview da development store](https://challenge-shopif.myshopify.com?preview_theme_id=165576704220)
+- [Theme Editor](https://challenge-shopif.myshopify.com/admin/themes/165576704220/editor)
 
-Before starting, ensure you have the latest Shopify CLI installed:
+> O preview pode solicitar a senha da development store ou autenticação, dependendo das permissões da loja.
 
-- [Shopify CLI](https://shopify.dev/docs/api/shopify-cli) – helps you download, upload, preview themes, and streamline your workflows
+## Objetivo
 
-If you use VS Code:
+A seção `ec-vendors-metaobject` busca automaticamente todos os vendedores ativos do Metaobject `store_vendor` e apresenta:
 
-- [Shopify Liquid VS Code Extension](https://shopify.dev/docs/storefronts/themes/tools/shopify-liquid-vscode) – provides syntax highlighting, linting, inline documentation, and auto-completion specifically designed for Liquid templates
+- Foto do vendedor;
+- Nome;
+- Cargo;
+- Produtos vendidos;
+- Imagem e link dos produtos relacionados.
 
-### Clone
+A seção pode ser adicionada em qualquer template compatível por meio do Theme Editor.
 
-Clone this repository using Git or Shopify CLI:
+## Metaobject utilizado
 
-```bash
-git clone git@github.com:Shopify/skeleton-theme.git
-# or
-shopify theme init
+O projeto espera um Metaobject com a seguinte configuração:
+
+| Propriedade | Valor          |
+| ----------- | -------------- |
+| Nome        | `Vendedor`     |
+| Type        | `store_vendor` |
+
+Campos esperados:
+
+| Campo               | Tipo                             |
+| ------------------- | -------------------------------- |
+| `nome`              | Texto de linha única             |
+| `cargo`             | Texto de linha única             |
+| `foto`              | Arquivo ou mídia                 |
+| `produtos_vendidos` | Lista de referências de produtos |
+
+Os registros são consumidos diretamente no Liquid:
+
+```liquid
+{% assign vendors = metaobjects.store_vendor.values %}
 ```
 
-### Preview
+Os produtos são obtidos como objetos `Product` reais por meio de:
 
-Preview this theme using Shopify CLI:
+```liquid
+{% for product in vendor.produtos_vendidos.value %}
+  <!-- Produto relacionado -->
+{% endfor %}
+```
+
+Não é necessário filtrar manualmente registros em rascunho. `metaobjects.store_vendor.values` disponibiliza os registros publicados acessíveis à storefront.
+
+## Arquivos implementados
+
+### `sections/ec-vendors-metaobject.liquid`
+
+Section principal responsável por:
+
+- Consultar os vendedores no Metaobject;
+- Renderizar os cards dinamicamente;
+- Tratar vendedores sem foto;
+- Tratar vendedores sem produtos;
+- Tratar produtos sem imagem;
+- Gerar imagens responsivas e otimizadas;
+- Controlar o grid para desktop e mobile;
+- Expor configurações no Theme Editor;
+- Evitar conflitos quando a section é usada mais de uma vez na página.
+
+### `assets/ec-vendor-placeholder.svg`
+
+Avatar padrão exibido quando o vendedor não possui foto.
+
+### `assets/ec-vendor-badge.svg`
+
+Ícone decorativo utilizado nos cards, extraído da referência visual do Figma.
+
+## Configurações no Theme Editor
+
+A section disponibiliza as seguintes configurações:
+
+| Configuração               | ID                | Opções         |
+| -------------------------- | ----------------- | -------------- |
+| Título                     | `title`           | Texto livre    |
+| Subtítulo                  | `subtitle`        | Texto livre    |
+| Itens por linha no desktop | `columns_desktop` | 1 a 4          |
+| Itens por linha no mobile  | `columns_mobile`  | 1 ou 2         |
+| Cor da borda               | `border_color`    | Seletor de cor |
+| Fundo do card              | `card_background` | Seletor de cor |
+| Espaçamento interno        | `card_padding`    | 16 a 48px      |
+
+O valor padrão para mobile é uma coluna, proporcionando a experiência mais confortável em telas pequenas.
+
+## Responsividade
+
+O grid usa `minmax(0, 1fr)` e adapta a quantidade efetiva de colunas quando a preferência configurada produziria cards estreitos demais.
+
+### Breakpoints
+
+- A partir de `1200px`: respeita a configuração desktop de 1 a 4 colunas;
+- Entre `900px` e `1199px`: a preferência de 4 colunas é reduzida para 3;
+- Entre `750px` e `899px`: as preferências de 3 ou 4 colunas são reduzidas para 2;
+- Até `749px`: utiliza a configuração de colunas mobile;
+- Até `749px` com 2 colunas: utiliza o layout compacto específico para mobile.
+
+Além dos breakpoints de viewport, os cards possuem uma container query baseada na largura real disponível:
+
+- Cards com até `300px` reorganizam avatar, badge, nome e cargo;
+- Nome e cargo passam a utilizar uma linha própria quando necessário;
+- Avatar, badge, tipografia, padding e miniaturas são reduzidos de maneira controlada;
+- Produtos excedentes fazem wrap e permanecem dentro do card.
+
+Essa abordagem também protege combinações como 3 colunas em viewports intermediários e uma coluna em celulares muito estreitos.
+
+## Tratamento de estados vazios
+
+A implementação não gera erro quando:
+
+- Não existem vendedores publicados;
+- Um vendedor não possui foto;
+- Nome ou cargo estão vazios;
+- Um vendedor não possui produtos relacionados;
+- Um produto relacionado não possui imagem destacada.
+
+Quando não existem vendedores, o grid não é renderizado. O título e o subtítulo permanecem visíveis, caso estejam configurados.
+
+## Imagens e acessibilidade
+
+- Fotos e produtos utilizam `image_url` e `image_tag`;
+- Imagens usam dimensões adequadas ao layout;
+- O carregamento utiliza `loading="lazy"`;
+- Imagens possuem textos alternativos coerentes;
+- Links de produtos possuem nomes acessíveis;
+- O avatar padrão e o badge decorativo não duplicam informações para tecnologias assistivas;
+- Nome e cargo quebram naturalmente entre palavras, sem `word-break: break-all`;
+- Estados de foco são visíveis nos links de produtos.
+
+## Como executar localmente
+
+### Pré-requisitos
+
+- Node.js;
+- Shopify CLI;
+- Acesso à development store utilizada pelo projeto.
+
+Autentique a Shopify CLI e execute:
 
 ```bash
 shopify theme dev
 ```
 
-## Theme architecture
+Para validar o tema:
 
 ```bash
-.
-├── assets          # Stores static assets (CSS, JS, images, fonts, etc.)
-├── blocks          # Reusable, nestable, customizable UI components
-├── config          # Global theme settings and customization options
-├── layout          # Top-level wrappers for pages (layout templates)
-├── locales         # Translation files for theme internationalization
-├── sections        # Modular full-width page components
-├── snippets        # Reusable Liquid code or HTML fragments
-└── templates       # Templates combining sections to define page structures
+shopify theme check
 ```
 
-To learn more, refer to the [theme architecture documentation](https://shopify.dev/docs/storefronts/themes/architecture).
+Resultado da última validação realizada durante a implementação:
 
-### Templates
+```text
+40 files inspected with no offenses found.
+```
 
-[Templates](https://shopify.dev/docs/storefronts/themes/architecture/templates#template-types) control what's rendered on each type of page in a theme.
+## Como adicionar a seção
 
-The Skeleton Theme scaffolds [JSON templates](https://shopify.dev/docs/storefronts/themes/architecture/templates/json-templates) to make it easy for merchants to customize their store.
+1. Abra o editor de temas da Shopify;
+2. Entre no template desejado;
+3. Clique em **Adicionar seção**;
+4. Selecione **Vendedores**;
+5. Configure título, subtítulo, colunas, cores e padding;
+6. Salve as alterações.
 
-None of the template types are required, and not all of them are included in the Skeleton Theme. Refer to the [template types reference](https://shopify.dev/docs/storefronts/themes/architecture/templates#template-types) for a full list.
+Os vendedores não são configurados por blocos. Para adicionar, remover ou editar vendedores, altere os registros do Metaobject `store_vendor` no Admin da Shopify.
 
-### Sections
+## Tecnologias
 
-[Sections](https://shopify.dev/docs/storefronts/themes/architecture/sections) are Liquid files that allow you to create reusable modules of content that can be customized by merchants. They can also include blocks which allow merchants to add, remove, and reorder content within a section.
+- Shopify Liquid;
+- Metaobjects;
+- CSS Grid;
+- Flexbox;
+- Container Queries;
+- Shopify Theme Editor;
+- Shopify CLI e Theme Check.
 
-Sections are made customizable by including a `{% schema %}` in the body. For more information, refer to the [section schema documentation](https://shopify.dev/docs/storefronts/themes/architecture/sections/section-schema).
+## Referência visual
 
-### Blocks
-
-[Blocks](https://shopify.dev/docs/storefronts/themes/architecture/blocks) let developers create flexible layouts by breaking down sections into smaller, reusable pieces of Liquid. Each block has its own set of settings, and can be added, removed, and reordered within a section.
-
-Blocks are made customizable by including a `{% schema %}` in the body. For more information, refer to the [block schema documentation](https://shopify.dev/docs/storefronts/themes/architecture/blocks/theme-blocks/schema).
-
-## Schemas
-
-When developing components defined by schema settings, we recommend these guidelines to simplify your code:
-
-- **Single property settings**: For settings that correspond to a single CSS property, use CSS variables:
-
-  ```liquid
-  <div class="collection" style="--gap: {{ block.settings.gap }}px">
-    ...
-  </div>
-
-  {% stylesheet %}
-    .collection {
-      gap: var(--gap);
-    }
-  {% endstylesheet %}
-
-  {% schema %}
-  {
-    "settings": [{
-      "type": "range",
-      "label": "gap",
-      "id": "gap",
-      "min": 0,
-      "max": 100,
-      "unit": "px",
-      "default": 0,
-    }]
-  }
-  {% endschema %}
-  ```
-
-- **Multiple property settings**: For settings that control multiple CSS properties, use CSS classes:
-
-  ```liquid
-  <div class="collection {{ block.settings.layout }}">
-    ...
-  </div>
-
-  {% stylesheet %}
-    .collection--full-width {
-      /* multiple styles */
-    }
-    .collection--narrow {
-      /* multiple styles */
-    }
-  {% endstylesheet %}
-
-  {% schema %}
-  {
-    "settings": [{
-      "type": "select",
-      "id": "layout",
-      "label": "layout",
-      "values": [
-        { "value": "collection--full-width", "label": "t:options.full" },
-        { "value": "collection--narrow", "label": "t:options.narrow" }
-      ]
-    }]
-  }
-  {% endschema %}
-  ```
-
-## CSS & JavaScript
-
-For CSS and JavaScript, we recommend using the [`{% stylesheet %}`](https://shopify.dev/docs/api/liquid/tags#stylesheet) and [`{% javascript %}`](https://shopify.dev/docs/api/liquid/tags/javascript) tags. They can be included multiple times, but the code will only appear once.
-
-### `critical.css`
-
-The Skeleton Theme explicitly separates essential CSS necessary for every page into a dedicated `critical.css` file.
-
-## Contributing
-
-We're excited for your contributions to the Skeleton Theme! This repository aims to remain as lean, lightweight, and fundamental as possible, and we kindly ask your contributions to align with this intention.
-
-Visit our [CONTRIBUTING.md](./CONTRIBUTING.md) for a detailed overview of our process, guidelines, and recommendations.
-
-## License
-
-Skeleton Theme is open-sourced under the [MIT](./LICENSE.md) License.
+O layout foi desenvolvido com base no mock fornecido no Figma. Foram reproduzidos os principais elementos visuais, incluindo grid, espaçamentos, bordas, cores, raio dos cards, avatar, badge e miniaturas de produtos, com adaptações responsivas para preservar legibilidade e evitar overflow.
