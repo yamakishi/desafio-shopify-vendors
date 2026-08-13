@@ -1,0 +1,646 @@
+{% liquid
+  assign vendors = metaobjects.store_vendor.values
+%}
+
+{% style %}
+  #shopify-section-{{ section.id }} {
+    --ec-vendors-columns-desktop: {{ section.settings.columns_desktop }};
+    --ec-vendors-columns-mobile: {{ section.settings.columns_mobile }};
+    --ec-vendors-border-color: {{ section.settings.border_color }};
+    --ec-vendors-card-background: {{ section.settings.card_background }};
+    --ec-vendors-card-padding: {{ section.settings.card_padding }}px;
+  }
+{% endstyle %}
+
+<section
+  class="ec-vendors ec-vendors--desktop-columns-{{ section.settings.columns_desktop }} ec-vendors--mobile-columns-{{ section.settings.columns_mobile }} full-width"
+  {% if section.settings.title != blank %}
+    aria-labelledby="ec-vendors-title-{{ section.id }}"
+  {% elsif section.settings.subtitle != blank %}
+    aria-label="{{ section.settings.subtitle | escape }}"
+  {% endif %}
+>
+  <div class="ec-vendors__inner">
+    {% if section.settings.title != blank or section.settings.subtitle != blank %}
+      <header class="ec-vendors__header">
+        {% if section.settings.title != blank %}
+          <h2 class="ec-vendors__title" id="ec-vendors-title-{{ section.id }}">
+            {{ section.settings.title | escape }}
+          </h2>
+        {% endif %}
+
+        {% if section.settings.subtitle != blank %}
+          <p class="ec-vendors__subtitle">{{ section.settings.subtitle | escape }}</p>
+        {% endif %}
+      </header>
+    {% endif %}
+
+    {% if vendors != blank %}
+      <div class="ec-vendors__grid">
+        {% for vendor in vendors %}
+          {% liquid
+            assign vendor_name = vendor.nome.value
+            assign vendor_role = vendor.cargo.value
+            assign vendor_photo = vendor.foto.value
+            assign vendor_products = vendor.produtos_vendidos.value
+
+            if vendor_photo.preview_image != blank
+              assign vendor_photo = vendor_photo.preview_image
+            endif
+
+            assign vendor_image_alt = vendor_name | default: 'Vendedor'
+          %}
+
+          <article class="ec-vendor-card">
+            <div class="ec-vendor-card__identity">
+              <div class="ec-vendor-card__avatar">
+                {% if vendor_photo != blank %}
+                  {{
+                    vendor_photo
+                    | image_url: width: 120, height: 120, crop: 'center'
+                    | image_tag:
+                      widths: '60, 90, 120',
+                      sizes: '60px',
+                      loading: 'lazy',
+                      alt: vendor_image_alt
+                  }}
+                {% else %}
+                  <img
+                    src="{{ 'ec-vendor-placeholder.svg' | asset_url }}"
+                    width="60"
+                    height="60"
+                    loading="lazy"
+                    alt=""
+                  >
+                {% endif %}
+              </div>
+
+              <div class="ec-vendor-card__details">
+                {% if vendor_name != blank %}
+                  <h3 class="ec-vendor-card__name">{{ vendor_name | escape }}</h3>
+                {% endif %}
+
+                {% if vendor_role != blank %}
+                  <p class="ec-vendor-card__role">{{ vendor_role | escape }}</p>
+                {% endif %}
+              </div>
+
+              <span
+                class="ec-vendor-card__badge"
+                style="--ec-vendor-badge-icon: url('{{ 'ec-vendor-badge.svg' | asset_url }}')"
+                aria-hidden="true"
+              >
+                <span class="ec-vendor-card__badge-icon"></span>
+              </span>
+            </div>
+
+            <div class="ec-vendor-card__products">
+              <p class="ec-vendor-card__products-title">Produtos vendidos</p>
+
+              {% if vendor_products != blank %}
+                <ul class="ec-vendor-card__product-list" role="list">
+                  {% for product in vendor_products %}
+                    {% if product.featured_image != blank %}
+                      {% liquid
+                        assign product_image_alt = product.featured_image.alt | default: product.title
+                      %}
+                      <li class="ec-vendor-card__product-item">
+                        <a
+                          class="ec-vendor-card__product-link"
+                          href="{{ product.url }}"
+                          aria-label="{{ product.title | escape }}"
+                        >
+                          {{
+                            product.featured_image
+                            | image_url: width: 88, height: 88, crop: 'center'
+                            | image_tag:
+                              widths: '44, 88',
+                              sizes: '44px',
+                              loading: 'lazy',
+                              alt: product_image_alt
+                          }}
+                        </a>
+                      </li>
+                    {% else %}
+                      <li class="ec-vendor-card__product-item">
+                        <a
+                          class="ec-vendor-card__product-link ec-vendor-card__product-link--placeholder"
+                          href="{{ product.url }}"
+                          aria-label="{{ product.title | escape }}"
+                        >
+                          <span class="ec-vendor-card__product-placeholder" aria-hidden="true"></span>
+                        </a>
+                      </li>
+                    {% endif %}
+                  {% endfor %}
+                </ul>
+              {% endif %}
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+{% stylesheet %}
+  .ec-vendors {
+    background: #f5f5f5;
+    color: #000;
+    padding-block: 133px 231px;
+  }
+
+  .ec-vendors__inner {
+    width: min(calc(100% - 40px), 1578px);
+    margin-inline: auto;
+  }
+
+  .ec-vendors__header {
+    display: block;
+    height: auto;
+    text-align: center;
+  }
+
+  .ec-vendors__title {
+    font-family: var(--font-primary--family);
+    font-size: 48px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .ec-vendors__subtitle {
+    margin-top: 12px;
+    font-size: 24px;
+    font-weight: 300;
+    line-height: 1.2;
+  }
+
+  .ec-vendors__grid {
+    display: grid;
+    grid-template-columns: repeat(var(--ec-vendors-columns-desktop), minmax(0, 1fr));
+    gap: 33px;
+    margin-top: 82px;
+  }
+
+  .ec-vendor-card {
+    container-type: inline-size;
+    container-name: ec-vendor-card;
+    min-width: 0;
+    min-height: 269px;
+    padding: var(--ec-vendors-card-padding);
+    overflow: hidden;
+    border: 2px solid var(--ec-vendors-border-color);
+    border-radius: 32px;
+    background: var(--ec-vendors-card-background);
+  }
+
+  .ec-vendor-card__identity {
+    display: grid;
+    grid-template-columns: 60px minmax(0, 1fr) 50px;
+    align-items: start;
+    gap: 11px;
+  }
+
+  .ec-vendor-card__identity > *,
+  .ec-vendor-card__products,
+  .ec-vendor-card__product-list,
+  .ec-vendor-card__product-item {
+    min-width: 0;
+  }
+
+  .ec-vendor-card__avatar,
+  .ec-vendor-card__avatar img {
+    width: 60px;
+    height: 60px;
+  }
+
+  .ec-vendor-card__avatar {
+    grid-column: 1;
+    overflow: hidden;
+    border-radius: 50%;
+  }
+
+  .ec-vendor-card__avatar img {
+    object-fit: cover;
+  }
+
+  .ec-vendor-card__details {
+    grid-column: 2;
+    min-width: 0;
+  }
+
+  .ec-vendor-card__name,
+  .ec-vendor-card__role {
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-break: normal;
+    hyphens: auto;
+    font-size: 24px;
+    line-height: 1.2;
+  }
+
+  .ec-vendor-card__name {
+    font-weight: 700;
+  }
+
+  .ec-vendor-card__role {
+    font-weight: 300;
+  }
+
+  .ec-vendor-card__badge {
+    display: grid;
+    grid-column: 3;
+    place-items: center;
+    width: 50px;
+    height: 50px;
+    border: 1px solid #e3b43d;
+    border-radius: 50%;
+    background: #fce8ad;
+    color: #c38c00;
+  }
+
+  .ec-vendor-card:nth-child(3n + 2) .ec-vendor-card__badge {
+    border-color: #aaa9b3;
+    background: #aaa9b3;
+    color: #fff;
+  }
+
+  .ec-vendor-card:nth-child(3n) .ec-vendor-card__badge {
+    border-color: #d66e4c;
+    background: #d66e4c;
+    color: #fff;
+  }
+
+  .ec-vendor-card__badge-icon {
+    width: 28px;
+    height: 28px;
+    background: currentcolor;
+    -webkit-mask: var(--ec-vendor-badge-icon) center / contain no-repeat;
+    mask: var(--ec-vendor-badge-icon) center / contain no-repeat;
+  }
+
+  .ec-vendor-card__products {
+    margin-top: 34px;
+  }
+
+  .ec-vendor-card__products-title {
+    font-size: 14px;
+    font-weight: 300;
+    line-height: 1.2;
+  }
+
+  .ec-vendor-card__product-list {
+    display: flex;
+    flex-wrap: wrap;
+    max-width: 100%;
+    gap: 20px;
+    margin-top: 7px;
+    padding: 0;
+    list-style: none;
+  }
+
+  .ec-vendor-card__product-link {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    overflow: hidden;
+    border-radius: 4px;
+  }
+
+  .ec-vendor-card__product-link img {
+    display: block;
+    width: 44px;
+    height: 44px;
+    object-fit: cover;
+  }
+
+  .ec-vendor-card__product-link--placeholder {
+    background: #eceae5;
+  }
+
+  .ec-vendor-card__product-placeholder {
+    width: 45%;
+    height: 45%;
+    border: 2px solid currentcolor;
+    border-radius: 3px;
+    color: #777;
+    opacity: 0.7;
+  }
+
+  .ec-vendor-card__product-link:focus-visible {
+    outline: 3px solid #000;
+    outline-offset: 3px;
+  }
+
+  @media (min-width: 900px) and (max-width: 1199px) {
+    .ec-vendors--desktop-columns-4 .ec-vendors__grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 750px) and (max-width: 899px) {
+    .ec-vendors--desktop-columns-3 .ec-vendors__grid,
+    .ec-vendors--desktop-columns-4 .ec-vendors__grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 749px) {
+    .ec-vendors {
+      padding-block: 64px;
+    }
+
+    .ec-vendors__title {
+      font-size: 36px;
+    }
+
+    .ec-vendors__subtitle {
+      font-size: 18px;
+    }
+
+    .ec-vendors__grid {
+      grid-template-columns: repeat(var(--ec-vendors-columns-mobile), minmax(0, 1fr));
+      gap: 20px;
+      margin-top: 48px;
+    }
+
+    .ec-vendor-card {
+      min-height: 0;
+      border-radius: 24px;
+    }
+
+    .ec-vendor-card__identity {
+      grid-template-columns: 54px minmax(0, 1fr) 42px;
+      gap: 10px;
+    }
+
+    .ec-vendor-card__avatar,
+    .ec-vendor-card__avatar img {
+      width: 54px;
+      height: 54px;
+    }
+
+    .ec-vendor-card__name,
+    .ec-vendor-card__role {
+      font-size: 18px;
+    }
+
+    .ec-vendor-card__badge {
+      width: 42px;
+      height: 42px;
+    }
+
+    .ec-vendor-card__badge-icon {
+      width: 24px;
+      height: 24px;
+    }
+
+    .ec-vendor-card__products {
+      margin-top: 28px;
+    }
+
+  }
+
+  @media (max-width: 749px) {
+    .ec-vendors--mobile-columns-2 .ec-vendors__grid {
+      gap: 10px;
+    }
+
+    .ec-vendors--mobile-columns-2 .ec-vendor-card {
+      padding: min(var(--ec-vendors-card-padding), 14px);
+      border-radius: 18px;
+    }
+
+    .ec-vendors--mobile-columns-2 .ec-vendor-card__identity {
+      grid-template-columns: 38px minmax(0, 1fr) 32px;
+      column-gap: 8px;
+      row-gap: 6px;
+    }
+
+    .ec-vendors--mobile-columns-2 .ec-vendor-card__avatar,
+    .ec-vendors--mobile-columns-2 .ec-vendor-card__avatar img {
+      width: 38px;
+      height: 38px;
+    }
+
+    .ec-vendors--mobile-columns-2 .ec-vendor-card__details {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
+
+    .ec-vendors--mobile-columns-2 .ec-vendor-card__name {
+      font-size: 15px;
+      line-height: 1.25;
+    }
+
+    .ec-vendors--mobile-columns-2 .ec-vendor-card__role {
+      margin-top: 2px;
+      font-size: 14px;
+      line-height: 1.25;
+    }
+
+    .ec-vendors--mobile-columns-2 .ec-vendor-card__badge {
+      grid-column: 3;
+      grid-row: 1;
+      width: 32px;
+      height: 32px;
+    }
+
+    .ec-vendors--mobile-columns-2 .ec-vendor-card__badge-icon {
+      width: 18px;
+      height: 18px;
+    }
+
+    .ec-vendors--mobile-columns-2 .ec-vendor-card__products {
+      margin-top: 18px;
+    }
+
+    .ec-vendors--mobile-columns-2 .ec-vendor-card__products-title {
+      font-size: 12px;
+    }
+
+    .ec-vendors--mobile-columns-2 .ec-vendor-card__product-list {
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .ec-vendors--mobile-columns-2 .ec-vendor-card__product-link,
+    .ec-vendors--mobile-columns-2 .ec-vendor-card__product-link img {
+      width: 32px;
+      height: 32px;
+    }
+  }
+
+  @container ec-vendor-card (max-width: 300px) {
+    .ec-vendor-card__identity {
+      grid-template-columns: 46px minmax(0, 1fr) 36px;
+      column-gap: 8px;
+      row-gap: 8px;
+    }
+
+    .ec-vendor-card__avatar,
+    .ec-vendor-card__avatar img {
+      width: 46px;
+      height: 46px;
+    }
+
+    .ec-vendor-card__details {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
+
+    .ec-vendor-card__name {
+      font-size: 17px;
+      line-height: 1.25;
+    }
+
+    .ec-vendor-card__role {
+      margin-top: 2px;
+      font-size: 16px;
+      line-height: 1.25;
+    }
+
+    .ec-vendor-card__badge {
+      grid-column: 3;
+      grid-row: 1;
+      width: 36px;
+      height: 36px;
+    }
+
+    .ec-vendor-card__badge-icon {
+      width: 20px;
+      height: 20px;
+    }
+
+    .ec-vendor-card__products {
+      margin-top: 20px;
+    }
+
+    .ec-vendor-card__product-list {
+      gap: 10px;
+    }
+
+    .ec-vendor-card__product-link,
+    .ec-vendor-card__product-link img {
+      width: 36px;
+      height: 36px;
+    }
+
+    .ec-vendors--mobile-columns-2 .ec-vendor-card__identity {
+      grid-template-columns: 38px minmax(0, 1fr) 32px;
+      column-gap: 8px;
+      row-gap: 6px;
+    }
+
+    .ec-vendors--mobile-columns-2 .ec-vendor-card__avatar,
+    .ec-vendors--mobile-columns-2 .ec-vendor-card__avatar img {
+      width: 38px;
+      height: 38px;
+    }
+
+    .ec-vendors--mobile-columns-2 .ec-vendor-card__name {
+      font-size: 15px;
+    }
+
+    .ec-vendors--mobile-columns-2 .ec-vendor-card__role {
+      font-size: 14px;
+    }
+
+    .ec-vendors--mobile-columns-2 .ec-vendor-card__badge {
+      width: 32px;
+      height: 32px;
+    }
+
+    .ec-vendors--mobile-columns-2 .ec-vendor-card__badge-icon {
+      width: 18px;
+      height: 18px;
+    }
+
+    .ec-vendors--mobile-columns-2 .ec-vendor-card__products {
+      margin-top: 18px;
+    }
+
+    .ec-vendors--mobile-columns-2 .ec-vendor-card__product-list {
+      gap: 8px;
+    }
+
+    .ec-vendors--mobile-columns-2 .ec-vendor-card__product-link,
+    .ec-vendors--mobile-columns-2 .ec-vendor-card__product-link img {
+      width: 32px;
+      height: 32px;
+    }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Vendedores",
+  "settings": [
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Título",
+      "default": "Desafio Shopify"
+    },
+    {
+      "type": "textarea",
+      "id": "subtitle",
+      "label": "Subtítulo",
+      "default": "Seção para mostrar vendedores disponíveis de uma loja"
+    },
+    {
+      "type": "range",
+      "id": "columns_desktop",
+      "label": "Itens por linha no desktop",
+      "min": 1,
+      "max": 4,
+      "step": 1,
+      "default": 3
+    },
+    {
+      "type": "select",
+      "id": "columns_mobile",
+      "label": "Itens por linha no mobile",
+      "options": [
+        {
+          "value": "1",
+          "label": "1"
+        },
+        {
+          "value": "2",
+          "label": "2"
+        }
+      ],
+      "default": "1"
+    },
+    {
+      "type": "color",
+      "id": "border_color",
+      "label": "Cor da borda dos cards",
+      "default": "#FFD324"
+    },
+    {
+      "type": "color",
+      "id": "card_background",
+      "label": "Cor de fundo dos cards",
+      "default": "#FFFCF6"
+    },
+    {
+      "type": "range",
+      "id": "card_padding",
+      "label": "Espaçamento interno dos cards",
+      "min": 16,
+      "max": 48,
+      "step": 2,
+      "unit": "px",
+      "default": 32
+    }
+  ],
+  "presets": [
+    {
+      "name": "Vendedores"
+    }
+  ]
+}
+{% endschema %}
