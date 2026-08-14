@@ -6,7 +6,9 @@
   #shopify-section-{{ section.id }} {
     --ec-vendors-columns-desktop: {{ section.settings.columns_desktop }};
     --ec-vendors-columns-mobile: {{ section.settings.columns_mobile }};
-    --ec-vendors-border-color: {{ section.settings.border_color }};
+    --vendor-border-color: {{ section.settings.border_color }};
+    --vendor-border-width: {{ section.settings.border_width }}px;
+    --vendor-border-radius: {{ section.settings.border_radius }}px;
     --ec-vendors-card-background: {{ section.settings.card_background }};
     --ec-vendors-card-padding: {{ section.settings.card_padding }}px;
   }
@@ -43,6 +45,13 @@
             assign vendor_role = vendor.cargo.value
             assign vendor_photo = vendor.foto.value
             assign vendor_products = vendor.produtos_vendidos.value
+            assign vendor_tier = vendor.tier.value | downcase | strip
+
+            case vendor_tier
+              when 'gold', 'silver', 'bronze'
+              else
+                assign vendor_tier = 'gold'
+            endcase
 
             if vendor_photo.preview_image != blank
               assign vendor_photo = vendor_photo.preview_image
@@ -86,7 +95,7 @@
               </div>
 
               <span
-                class="ec-vendor-card__badge"
+                class="ec-vendor-card__badge ec-vendor-card__badge--{{ vendor_tier }}"
                 style="--ec-vendor-badge-icon: url('{{ 'ec-vendor-badge.svg' | asset_url }}')"
                 aria-hidden="true"
               >
@@ -189,8 +198,8 @@
     min-height: 269px;
     padding: var(--ec-vendors-card-padding);
     overflow: hidden;
-    border: 2px solid var(--ec-vendors-border-color);
-    border-radius: 32px;
+    border: var(--vendor-border-width) solid var(--vendor-border-color);
+    border-radius: var(--vendor-border-radius);
     background: var(--ec-vendors-card-background);
   }
 
@@ -253,19 +262,23 @@
     place-items: center;
     width: 50px;
     height: 50px;
-    border: 1px solid #e3b43d;
+    border: 1px solid transparent;
     border-radius: 50%;
+  }
+
+  .ec-vendor-card__badge--gold {
+    border-color: #e3b43d;
     background: #fce8ad;
     color: #c38c00;
   }
 
-  .ec-vendor-card:nth-child(3n + 2) .ec-vendor-card__badge {
+  .ec-vendor-card__badge--silver {
     border-color: #aaa9b3;
     background: #aaa9b3;
     color: #fff;
   }
 
-  .ec-vendor-card:nth-child(3n) .ec-vendor-card__badge {
+  .ec-vendor-card__badge--bronze {
     border-color: #d66e4c;
     background: #d66e4c;
     color: #fff;
@@ -367,7 +380,6 @@
 
     .ec-vendor-card {
       min-height: 0;
-      border-radius: 24px;
     }
 
     .ec-vendor-card__identity {
@@ -409,7 +421,6 @@
 
     .ec-vendors--mobile-columns-2 .ec-vendor-card {
       padding: min(var(--ec-vendors-card-padding), 14px);
-      border-radius: 18px;
     }
 
     .ec-vendors--mobile-columns-2 .ec-vendor-card__identity {
@@ -619,6 +630,26 @@
       "id": "border_color",
       "label": "Cor da borda dos cards",
       "default": "#FFD324"
+    },
+    {
+      "type": "range",
+      "id": "border_width",
+      "label": "Espessura da borda dos cards",
+      "min": 0,
+      "max": 4,
+      "step": 1,
+      "unit": "px",
+      "default": 2
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "label": "Arredondamento da borda dos cards",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 32
     },
     {
       "type": "color",
