@@ -9,12 +9,23 @@
  */
 {
   "sections": {
-    "main": {
-      "type": "hello-world",
-      "settings": {}
+    "ec_vendors_metaobject_QmhYF3": {
+      "type": "ec-vendors-metaobject",
+      "name": "Vendedores",
+      "settings": {
+        "title": "Desafio Shopify",
+        "subtitle": "Seção para mostrar vendedores disponíveis de uma loja",
+        "columns_desktop": 3,
+        "columns_mobile": "1",
+        "border_color": "#FFD324",
+        "border_width": 2,
+        "border_radius": 32,
+        "card_background": "#FFFCF6",
+        "card_padding": 32
+      }
     }
   },
   "order": [
-    "main"
+    "ec_vendors_metaobject_QmhYF3"
   ]
 }
